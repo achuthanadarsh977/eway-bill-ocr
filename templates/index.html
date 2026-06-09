@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>E-Way Bill OCR Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 32px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #c0c8d8;
+      border-radius: 10px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafbfc;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: #4f8ef7;
+      background: #f0f6ff;
+    }
+
+    .drop-zone .icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    .drop-zone p {
+      color: #555;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .drop-zone span {
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    .btn-select {
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-select:hover { background: #3a7be0; }
+
+    #fileInput { display: none; }
+
+    /* File info */
+    .file-info {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: #f0f6ff;
+      border-radius: 8px;
+      border: 1px solid #c8dcff;
+    }
+
+    .file-info .file-name {
+      font-weight: 600;
+      color: #2c3e50;
+      flex: 1;
+    }
+
+    .file-info .file-size {
+      color: #888;
+      font-size: 0.85rem;
+    }
+
+    /* Upload button */
+    .btn-upload {
+      display: none;
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-upload:hover { background: #219a52; }
+    .btn-upload:disabled { background: #95d5b2; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      text-align: center;
+      padding: 24px;
+      color: #555;
+    }
+
+    .spinner::before {
+      content: '';
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #ddd;
+      border-top-color: #4f8ef7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result section */
+    .result { display: none; margin-top: 28px; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .result-header h2 {
+      font-size: 1.1rem;
+      color: #1a1a2e;
+    }
+
+    .meta-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-blue  { background: #e8f0fe; color: #1967d2; }
+    .badge-green { background: #e6f4ea; color: #137333; }
+    .badge-gray  { background: #f1f3f4; color: #444; }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-download {
+      padding: 8px 18px;
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-download:hover { background: #3a7be0; }
+
+    .btn-copy {
+      padding: 8px 18px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-copy:hover    { background: #5a6268; }
+    .btn-copy.copied   { background: #27ae60; }
+
+    .json-box {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      max-height: 520px;
+      overflow-y: auto;
+      white-space: pre;
+    }
+
+    /* Syntax highlight colors */
+    .json-key    { color: #89b4fa; }
+    .json-string { color: #a6e3a1; }
+    .json-number { color: #fab387; }
+    .json-bool   { color: #f38ba8; }
+    .json-null   { color: #6c7086; }
+
+    /* Error */
+    .error-box {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      background: #fff0f0;
+      border: 1px solid #ffc0c0;
+      border-radius: 8px;
+      color: #c0392b;
+      font-size: 0.9rem;
+    }
+
+    .btn-reset {
+      margin-top: 16px;
+      padding: 8px 20px;
+      background: #eee;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-reset:hover { background: #ddd; }
+
+    /* Sections inside JSON result */
+    .section-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      background: #fff;
+      color: #555;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active,
+    .tab-btn:hover {
+      background: #4f8ef7;
+      color: #fff;
+      border-color: #4f8ef7;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>E-Way Bill OCR Tool</h1>
+  <p class="subtitle">Upload any E-Way Bill PDF or scanned image and get structured JSON instantly</p>
+
+  <div class="card">
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="dropZone">
+      <div class="icon">📄</div>
+      <p>Drag &amp; drop your E-Way Bill here</p>
+      <span>PDF, TIFF, PNG, JPG, BMP supported</span>
+      <br/>
+      <button class="btn-select" onclick="document.getElementById('fileInput').click()">
+        Browse File
+      </button>
+      <input type="file" id="fileInput" accept=".pdf,.tif,.tiff,.png,.jpg,.jpeg,.bmp" />
+    </div>
+
+    <!-- Selected file info -->
+    <div class="file-info" id="fileInfo">
+      <span>📎</span>
+      <span class="file-name" id="fileName"></span>
+      <span class="file-size" id="fileSize"></span>
+    </div>
+
+    <!-- Upload button -->
+    <button class="btn-upload" id="uploadBtn" onclick="uploadFile()">
+      Extract JSON
+    </button>
+
+    <!-- Loading -->
+    <div class="spinner" id="spinner">Processing file...</div>
+
+    <!-- Error -->
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- Result -->
+    <div class="result" id="result">
+      <div class="result-header">
+        <h2>Extracted Data</h2>
+        <div class="result-actions">
+          <button class="btn-copy" id="copyBtn" onclick="copyJson()">Copy JSON</button>
+          <a class="btn-download" id="downloadBtn" href="#" target="_blank">Download JSON</a>
+        </div>
+      </div>
+
+      <div class="meta-badges" id="metaBadges"></div>
+
+      <div class="section-tabs" id="sectionTabs"></div>
+
+      <div class="json-box" id="jsonBox"></div>
+
+      <button class="btn-reset" onclick="resetForm()">Upload Another File</button>
+    </div>
+
+  </div>
+
+  <script>
+    let selectedFile = null;
+
+    const dropZone  = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo  = document.getElementById('fileInfo');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    // Drag and drop
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.pdf')) setFile(file);
+      else showError('Please drop a PDF file.');
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSize').textContent = formatSize(file.size);
+      fileInfo.style.display  = 'flex';
+      uploadBtn.style.display = 'block';
+      document.getElementById('result').style.display   = 'none';
+      document.getElementById('errorBox').style.display = 'none';
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    async function uploadFile() {
+      if (!selectedFile) return;
+
+      uploadBtn.disabled = true;
+      document.getElementById('spinner').style.display = 'block';
+      document.getElementById('result').style.display  = 'none';
+      document.getElementById('errorBox').style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('pdf', selectedFile);
+
+      try {
+        const res  = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+
+        document.getElementById('spinner').style.display = 'none';
+        uploadBtn.disabled = false;
+
+        if (data.error) {
+          showError(data.error);
+          return;
+        }
+
+        showResult(data);
+
+      } catch (err) {
+        document.getElementById('spinner').style.display = 'none';
+        uploadBtn.disabled = false;
+        showError('Upload failed. Please try again.');
+      }
+    }
+
+    function showResult(data) {
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+
+      // Badges
+      const badges = document.getElementById('metaBadges');
+      badges.innerHTML = `
+        <span class="badge badge-blue">${data.filename}</span>
+        <span class="badge badge-gray">${data.pages} page${data.pages > 1 ? 's' : ''}</span>
+        <span class="badge badge-green">${data.pdf_type}</span>
+      `;
+
+      // Download link
+      document.getElementById('downloadBtn').href = '/download/' + data.json_file;
+
+      // Section tabs
+      const tabs   = document.getElementById('sectionTabs');
+      const jsonBox = document.getElementById('jsonBox');
+      const sections = Object.keys(data.data);
+
+      tabs.innerHTML = '';
+
+      // "All" tab
+      const allBtn = document.createElement('button');
+      allBtn.className = 'tab-btn active';
+      allBtn.textContent = 'All';
+      allBtn.onclick = () => {
+        setActiveTab(allBtn, tabs);
+        renderJson(data.data, jsonBox);
+        currentJson = data.data;
+      };
+      tabs.appendChild(allBtn);
+
+      sections.forEach(section => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn';
+        btn.textContent = section.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        btn.onclick = () => {
+          setActiveTab(btn, tabs);
+          renderJson(data.data[section], jsonBox);
+          currentJson = data.data[section];
+        };
+        tabs.appendChild(btn);
+      });
+
+      currentJson = data.data;
+      renderJson(data.data, jsonBox);
+    }
+
+    function setActiveTab(active, tabs) {
+      tabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      active.classList.add('active');
+    }
+
+    function renderJson(obj, box) {
+      box.innerHTML = syntaxHighlight(JSON.stringify(obj, null, 4));
+    }
+
+    function syntaxHighlight(json) {
+      return json
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(
+          /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+          match => {
+            if (/^"/.test(match)) {
+              return /:$/.test(match)
+                ? `<span class="json-key">${match}</span>`
+                : `<span class="json-string">${match}</span>`;
+            }
+            if (/true|false/.test(match)) return `<span class="json-bool">${match}</span>`;
+            if (/null/.test(match))       return `<span class="json-null">${match}</span>`;
+            return `<span class="json-number">${match}</span>`;
+          }
+        );
+    }
+
+    let currentJson = null;
+
+    function copyJson() {
+      if (!currentJson) return;
+      const text = JSON.stringify(currentJson, null, 4);
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy JSON';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        alert('Copy failed. Please select the JSON manually.');
+      });
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = 'Error: ' + msg;
+      box.style.display = 'block';
+    }
+
+    function resetForm() {
+      selectedFile = null;
+      currentJson  = null;
+      fileInput.value = '';
+      fileInfo.style.display   = 'none';
+      uploadBtn.style.display  = 'none';
+      document.getElementById('result').style.display   = 'none';
+      document.getElementById('errorBox').style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>
