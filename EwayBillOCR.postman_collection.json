@@ -1,0 +1,79 @@
+{
+    "info": {
+        "name": "Eway Bill OCR API",
+        "_postman_id": "eway-bill-ocr-collection",
+        "description": "API collection for Eway Bill OCR tool hosted on Render",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Upload Eway Bill (PDF)",
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "pdf",
+                            "type": "file",
+                            "src": "",
+                            "description": "Upload any Eway Bill PDF or image (JPG, PNG, TIFF, BMP)"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "https://eway-bill-ocr.onrender.com/upload",
+                    "protocol": "https",
+                    "host": ["eway-bill-ocr", "onrender", "com"],
+                    "path": ["upload"]
+                },
+                "description": "Upload an Eway Bill PDF or scanned image. Returns structured JSON with all extracted fields."
+            },
+            "response": [
+                {
+                    "name": "Success Response",
+                    "status": "OK",
+                    "code": 200,
+                    "body": "{\n    \"success\": true,\n    \"filename\": \"5020_0398_3981.pdf\",\n    \"pages\": 2,\n    \"pdf_type\": \"Digital PDF\",\n    \"json_file\": \"5020_0398_3981_20260610_061418.json\",\n    \"data\": {\n        \"ewb_details\": {\n            \"ewb_number\": \"502003983981\",\n            \"ewb_date\": \"13/05/2026 09:44 PM\",\n            \"valid_from\": \"13/05/2026 09:44 PM\",\n            \"valid_till\": \"15/05/2026\",\n            \"generated_by_gstin\": \"33AABCG3365J1ZP\",\n            \"generated_by_name\": \"GODREJ CONSUMER PRODUCTS LTD\",\n            \"supply_type\": \"Outward\",\n            \"transaction_type\": \"Combination of 2 and 3\",\n            \"document_number\": \"TN0352000541\",\n            \"document_date\": \"13/05/2026\",\n            \"document_type\": \"\",\n            \"value_of_goods\": \"4189319.33\",\n            \"reason_for_transport\": \"Outward - Supply\",\n            \"irn\": \"0a87681409eff5ea12c4a5f6b91661ee6afec2e66a20ccb429692a53736c6c7b\"\n        },\n        \"from_party\": {\n            \"gstin\": \"33AABCG3365J1ZP\",\n            \"name\": \"Godrej Consumer Products Ltd\",\n            \"place\": \"Villupuram\",\n            \"state\": \"TAMIL NADU\",\n            \"pincode\": \"605111\"\n        },\n        \"to_party\": {\n            \"gstin\": \"29AABCG3365J1ZE\",\n            \"name\": \"Godrej Consumer Products Ltd\",\n            \"place\": \"Taverekere Hobli, Bangalore\",\n            \"state\": \"KARNATAKA\",\n            \"pincode\": \"560074\"\n        },\n        \"item_details\": {\n            \"hsn_codes\": [\"38089199\"],\n            \"products\": [\"HIT CIK 400ML M195 P36 0.18( +28 )\"],\n            \"taxable_value\": \"4189319.33\",\n            \"cgst_rate\": \"\",\n            \"sgst_rate\": \"\",\n            \"igst_rate\": \"\",\n            \"total_value\": \"4189319.33\"\n        },\n        \"transporter_details\": {\n            \"transporter_id\": \"07AASCS0150N1ZY\",\n            \"transporter_name\": \"S S FORWARDERS PVT LTD\",\n            \"transport_entries\": [\n                {\n                    \"vehicle_number\": \"TN22C9975\",\n                    \"transport_doc_no\": \"64453\",\n                    \"transport_mode\": \"Road\",\n                    \"from_place\": \"Villupuram\",\n                    \"entered_date\": \"13/05/2026 09:44 PM\",\n                    \"entered_by\": \"33AABCG3365J1ZP\",\n                    \"cewb_number\": \"\"\n                }\n            ]\n        }\n    }\n}"
+                },
+                {
+                    "name": "Error Response",
+                    "status": "Bad Request",
+                    "code": 400,
+                    "body": "{\n    \"error\": \"No file provided\"\n}"
+                }
+            ]
+        },
+        {
+            "name": "Download JSON Output",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "https://eway-bill-ocr.onrender.com/download/{{json_file}}",
+                    "protocol": "https",
+                    "host": ["eway-bill-ocr", "onrender", "com"],
+                    "path": ["download", "{{json_file}}"]
+                },
+                "description": "Download the extracted JSON file. Copy the json_file value from the upload response and set it as the {{json_file}} environment variable. Must be downloaded immediately after upload as Render clears files on restart."
+            },
+            "response": []
+        },
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "https://eway-bill-ocr.onrender.com/",
+                    "protocol": "https",
+                    "host": ["eway-bill-ocr", "onrender", "com"],
+                    "path": [""]
+                },
+                "description": "Check if the server is running. Returns the web UI."
+            },
+            "response": []
+        }
+    ]
+}
