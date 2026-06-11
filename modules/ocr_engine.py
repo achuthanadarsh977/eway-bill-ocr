@@ -1,13 +1,20 @@
 import fitz  # PyMuPDF
-import easyocr
-import numpy as np
-from PIL import Image, ImageEnhance, ImageFilter
 import io
+
+try:
+    import easyocr
+    import numpy as np
+    from PIL import Image, ImageEnhance, ImageFilter
+    _EASYOCR_AVAILABLE = True
+except ImportError:
+    _EASYOCR_AVAILABLE = False
 
 _reader = None
 
 
 def _get_reader():
+    if not _EASYOCR_AVAILABLE:
+        raise RuntimeError("EasyOCR is not installed. Only digital PDFs are supported on this server.")
     global _reader
     if _reader is None:
         print("Loading EasyOCR model (first time only)...")
@@ -15,7 +22,7 @@ def _get_reader():
     return _reader
 
 
-def _preprocess_for_ocr(img: Image.Image) -> np.ndarray:
+def _preprocess_for_ocr(img):
     """
     Upscale, denoise, and enhance contrast so EasyOCR reads
     phone-photos and low-DPI scans accurately.

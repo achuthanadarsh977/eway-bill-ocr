@@ -38,20 +38,35 @@ def index():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    # Accept field name "pdf" or "file" for backwards compatibility
     file = request.files.get("pdf") or request.files.get("file")
+    file_path = None
+
     if file is None:
-        return jsonify({"error": "No file provided"}), 400
-
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
-
-    if not allowed_file(file.filename):
-        return jsonify({"error": f"Allowed types: PDF, {', '.join(sorted(IMAGE_EXTENSIONS))}"}), 400
-
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(file_path)
+        import base64
+        b64 = request.form.get("pdf_base64") or request.form.get("pdf") or request.form.get("file")
+        if not b64:
+            return jsonify({"error": "No file provided"}), 400
+        try:
+            file_bytes = base64.b64decode(b64)
+        except Exception:
+            file_bytes = b64.encode("latin-1")
+        if file_bytes[:5] != b"%PDF-":
+            return jsonify({
+                "error": "Received data is not a valid PDF",
+                "preview": repr(file_bytes[:80]),
+            }), 400
+        filename = "zoho_upload.pdf"
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+    else:
+        if file.filename == "":
+            return jsonify({"error": "No file selected"}), 400
+        if not allowed_file(file.filename):
+            return jsonify({"error": f"Allowed types: PDF, {', '.join(sorted(IMAGE_EXTENSIONS))}"}), 400
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
 
     try:
         if is_image_file(filename):
@@ -61,16 +76,11 @@ def upload():
             file_info = load_pdf(file_path)
             file_type = "Digital PDF" if file_info["is_digital"] else "Scanned PDF"
 
-        raw_text  = extract_text(file_info)
-        parsed    = parse_eway_bill(raw_text)
-        json_path = to_json(parsed, OUTPUT_FOLDER, filename)
+        raw_text = extract_text(file_info)
+        parsed   = parse_eway_bill(raw_text)
 
         return jsonify({
             "success": True,
-            "filename": filename,
-            "pages": file_info["num_pages"],
-            "pdf_type": file_type,
-            "json_file": os.path.basename(json_path),
             "data": parsed,
         })
 
@@ -78,7 +88,7 @@ def upload():
         return jsonify({"error": str(e)}), 500
 
     finally:
-        if os.path.exists(file_path):
+        if file_path and os.path.exists(file_path):
             os.remove(file_path)
 
 
