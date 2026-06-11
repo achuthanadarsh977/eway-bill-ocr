@@ -1,9 +1,7 @@
 services:
   - type: web
     name: eway-bill-ocr
-    runtime: python
-    buildCommand: apt-get install -y tesseract-ocr && pip install -r requirements.txt
-    startCommand: python app.py
+    runtime: docker
     envVars:
       - key: PORT
         value: 10000
