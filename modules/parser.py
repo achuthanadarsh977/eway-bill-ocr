@@ -300,10 +300,11 @@ def parse_eway_bill(text: str) -> dict:
     # ── Vehicle and Transport Mode ────────────────────────────────────────────
     transport_entries = []
 
-    # Indian vehicle number: 2 letters + 1-2 digits + 1-3 letters + 4 digits (hyphens optional)
+    # Indian vehicle number: 2 letters + 1-2 digits + 0-3 letters + 4 digits (hyphens optional)
+    # Alpha series is optional to support old-format registrations (e.g. KA595705)
     # Lookbehind/ahead prevents false matches inside 15-char GSTINs
     # [0-9OI] allows OCR-confused O→0 and I→1 in the district digit positions
-    _VEH_RE  = r'(?<![A-Z0-9])([A-Z]{2}[\-]?[0-9OI]{1,2}[\-]?[A-Z]{1,3}[\-]?\d{4})(?![A-Z0-9])'
+    _VEH_RE  = r'(?<![A-Z0-9])([A-Z]{2}[\-]?[0-9OI]{1,2}[\-]?[A-Z]{0,3}[\-]?\d{4})(?![A-Z0-9])'
     _MODE_RE = r'(Road|Rail|Air|Ship)'
     # Date supports both DD/MM/YYYY and DD-MM-YYYY, with optional time
     _DATE_RE = r'(\d{2}[\/\-]\d{2}[\/\-]\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?\s*[APM]{2})?)'
