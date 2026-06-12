@@ -323,18 +323,19 @@ def parse_eway_bill(text: str) -> dict:
     def _norm_date(d):
         return d.replace('-', '/') if d else d
 
-    part_b       = _find(r"Part\s*-?\s*B\s+(.+)", t)
+    _part_b_m    = re.search(r"Part\s*-?\s*B\s+(.+)", t, re.IGNORECASE | re.DOTALL)
+    part_b       = _part_b_m.group(1).strip() if _part_b_m else None
     search_scope = part_b if part_b else t
 
     # ── Layer 1a: Part B table — Mode before vehicle (most common)
-    # Row order: Mode  VehicleNo  [From]  Date  EnteredBy  [CEWBNo]
+    # Row order: Mode  VehicleNo  [& DocNo & DocDate]  From  EnteredDate  EnteredBy  [CEWBNo]
     if part_b:
         # With from_place between vehicle and date
-        # Also handles "& - & -" doc-info token between vehicle number and from_place
+        # Doc group: & DocNo & DocDate (date explicit so trailing \s+ before from_place is preserved)
         row_pat_with_place = (
             r'\b' + _MODE_RE + r'\s+'
-            + _VEH_RE + r'(?:\s+&\s*([A-Z0-9/\-]+)\s*&[^A-Za-z]{0,20})?\s+'
-            r'([A-Za-z][A-Za-z0-9\-/ ]+?)(?=\s+\d{2}[\/\-]\d{2}[\/\-]\d{4})\s+'
+            + _VEH_RE + r'(?:\s+&\s*([A-Z0-9/\-]+)\s*&\s*\d{2}[\/\-]\d{2}[\/\-]\d{4})?\s+'
+            r'([A-Za-z][A-Za-z0-9\-/,. ]+?)(?=\s+\d{2}[\/\-]\d{2}[\/\-]\d{4})\s+'
             + _DATE_RE + r'\s+'
             r'([A-Z0-9]+)'
             r'(?:\s+(\d{8,12}))?'
@@ -347,12 +348,15 @@ def parse_eway_bill(text: str) -> dict:
             r'([A-Z0-9]+)'
             r'(?:\s+(\d{8,12}))?'
         )
+        def _clean_doc(d):
+            return "" if not d or re.fullmatch(r'[0\-]+', d.strip()) else d.strip()
+
         found_in_1a = set()
         for row in re.findall(row_pat_with_place, part_b, re.IGNORECASE):
             vno = _clean_vno(row[1])
             transport_entries.append({
                 "vehicle_number":   vno,
-                "transport_doc_no": row[2] if row[2] else "",
+                "transport_doc_no": _clean_doc(row[2]),
                 "transport_mode":   row[0].capitalize(),
                 "from_place":       row[3].strip(),
                 "entered_date":     _norm_date(row[4].strip()),
