@@ -1,12 +1,25 @@
 import fitz
 import io
+import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
 
+_EASYOCR_AVAILABLE = False
 try:
-    import pytesseract
-    _TESSERACT_AVAILABLE = True
+    import easyocr
+    _EASYOCR_AVAILABLE = True
 except ImportError:
-    _TESSERACT_AVAILABLE = False
+    pass
+
+_reader = None
+
+
+def _get_reader():
+    global _reader
+    if not _EASYOCR_AVAILABLE:
+        raise RuntimeError("EasyOCR is not installed. Run: pip install easyocr")
+    if _reader is None:
+        _reader = easyocr.Reader(['en'], gpu=False)
+    return _reader
 
 
 def _preprocess(img):
@@ -22,10 +35,10 @@ def _preprocess(img):
 
 
 def _ocr_image(img):
-    if not _TESSERACT_AVAILABLE:
-        raise RuntimeError("Tesseract OCR is not installed on this server.")
     processed = _preprocess(img)
-    return pytesseract.image_to_string(processed, config="--psm 6")
+    arr = np.array(processed)
+    results = _get_reader().readtext(arr, detail=0, paragraph=True)
+    return "\n".join(results)
 
 
 def extract_text_digital(pdf_info: dict) -> str:
@@ -55,11 +68,11 @@ def extract_text_from_images(images: list) -> str:
 
 def extract_text(pdf_info: dict) -> str:
     if "images" in pdf_info:
-        print("Image file detected — running Tesseract OCR.")
+        print("Image file detected — running EasyOCR.")
         return extract_text_from_images(pdf_info["images"])
     elif pdf_info["is_digital"]:
         print("Digital PDF detected — extracting text directly.")
         return extract_text_digital(pdf_info)
     else:
-        print("Scanned PDF detected — running Tesseract OCR.")
+        print("Scanned PDF detected — running EasyOCR.")
         return extract_text_scanned(pdf_info["path"])

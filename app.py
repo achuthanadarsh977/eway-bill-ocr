@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 from flask import Flask, request, jsonify, render_template, send_file
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -79,9 +80,20 @@ def upload():
         raw_text = extract_text(file_info)
         parsed   = parse_eway_bill(raw_text)
 
+        stem = os.path.splitext(filename)[0]
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        json_filename = f"{stem}_{ts}.json"
+        json_path = os.path.join(OUTPUT_FOLDER, json_filename)
+        with open(json_path, "w") as f:
+            json.dump(parsed, f, indent=2)
+
         return jsonify({
-            "success": True,
-            "data": parsed,
+            "success":  True,
+            "filename": filename,
+            "pages":    file_info["num_pages"],
+            "pdf_type": file_type,
+            "json_file": json_filename,
+            "data":     parsed,
         })
 
     except Exception as e:

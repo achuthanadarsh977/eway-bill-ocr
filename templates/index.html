@@ -370,8 +370,9 @@
       e.preventDefault();
       dropZone.classList.remove('dragover');
       const file = e.dataTransfer.files[0];
-      if (file && file.name.endsWith('.pdf')) setFile(file);
-      else showError('Please drop a PDF file.');
+      const allowed = /\.(pdf|tif|tiff|png|jpg|jpeg|bmp)$/i;
+      if (file && allowed.test(file.name)) setFile(file);
+      else showError('Allowed types: PDF, TIFF, PNG, JPG, BMP.');
     });
 
     fileInput.addEventListener('change', () => {
